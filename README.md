@@ -44,7 +44,9 @@ Designed on the browser, openly now built for desktop.
 
 ### 🐧 Linux
 
-[![Download for Linux](https://img.shields.io/badge/Linux_Binary-amd64-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/striker561/Avnac-Studio/releases/latest/download/avnac-studio-linux-amd64)
+[![Download for Linux (Modern Distros)](https://img.shields.io/badge/Linux_Modern_Distros-amd64_%E2%80%94_webkit4.1-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/striker561/Avnac-Studio/releases/latest/download/avnac-studio-linux-amd64-webkit41)
+
+[![Download for Linux (Legacy Distros)](https://img.shields.io/badge/Linux_Legacy_Distros-amd64_%E2%80%94_webkit4.0-9E9E9E?style=for-the-badge&logo=linux&logoColor=white)](https://github.com/striker561/Avnac-Studio/releases/latest/download/avnac-studio-linux-amd64-webkit40)
 
 ---
 
