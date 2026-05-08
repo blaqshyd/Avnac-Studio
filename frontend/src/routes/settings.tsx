@@ -199,6 +199,14 @@ export const Route = createFileRoute("/settings")({
     const [tamboSaving, setTamboSaving] = useState(false);
     const [tamboError, setTamboError] = useState<string | null>(null);
     const [tamboNotice, setTamboNotice] = useState<string | null>(null);
+
+    // --- Boreas (remove-bg) ---
+    const [boreasUrl, setBoreasUrl] = useState("");
+    const [boreasToken, setBoreasToken] = useState("");
+    const [boreasLoading, setBoreasLoading] = useState(true);
+    const [boresSaving, setBoresSaving] = useState(false);
+    const [boreasError, setBoreasError] = useState<string | null>(null);
+    const [boreasNotice, setBoreasNotice] = useState<string | null>(null);
     const [snapIntensity, setSnapIntensityState] = useState(() =>
       getSceneSnapIntensity(),
     );
@@ -256,6 +264,53 @@ export const Route = createFileRoute("/settings")({
         cancelled = true;
       };
     }, []);
+
+    useEffect(() => {
+      let cancelled = false;
+      void (async () => {
+        const bridge = getSecretsBridge();
+        try {
+          const [url, token] = await Promise.all([
+            bridge ? bridge.GetKey("boreas-url") : "",
+            bridge ? bridge.GetKey("boreas-token") : "",
+          ]);
+          if (!cancelled) {
+            setBoreasUrl((url ?? "").trim());
+            setBoreasToken((token ?? "").trim());
+          }
+        } catch (err) {
+          if (!cancelled) setBoreasError(formatSecretsError(err, "load"));
+        } finally {
+          if (!cancelled) setBoreasLoading(false);
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, []);
+
+    const saveBoreas = useCallback(() => {
+      const nextUrl = boreasUrl.trim();
+      const nextToken = boreasToken.trim();
+      setBoresSaving(true);
+      setBoreasError(null);
+      setBoreasNotice(null);
+      void (async () => {
+        try {
+          const bridge = getSecretsBridge();
+          if (!bridge) throw new Error("Secrets bridge unavailable");
+          await bridge.SetKey("boreas-url", nextUrl);
+          await bridge.SetKey("boreas-token", nextToken);
+          setBoreasUrl(nextUrl);
+          setBoreasToken(nextToken);
+          setBoreasNotice("Boreas settings saved.");
+        } catch (err) {
+          setBoreasError(formatSecretsError(err, "save"));
+        } finally {
+          setBoresSaving(false);
+        }
+      })();
+    }, [boreasUrl, boreasToken]);
 
     const saveUnsplashKey = useCallback(() => {
       const next = unsplashKey.trim();
@@ -425,6 +480,118 @@ export const Route = createFileRoute("/settings")({
                   error={unsplashError}
                   notice={unsplashNotice}
                 />
+
+                {/* Boreas — remove background */}
+                <div className="overflow-hidden rounded-[28px] border border-black/[0.08] bg-white/75 shadow-[0_20px_60px_rgba(0,0,0,0.06)] backdrop-blur-md">
+                  <div className="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:px-6">
+                    <div className="min-w-0">
+                      <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-black/[0.08] bg-white/80 px-3 py-1 text-xs font-medium text-[var(--text-muted)]">
+                        <HugeiconsIcon
+                          icon={AiMagicIcon}
+                          size={14}
+                          strokeWidth={1.9}
+                          className="shrink-0"
+                        />
+                        Remove Background
+                      </div>
+                      <h2 className="m-0 text-base font-semibold text-[var(--text)] sm:text-lg">
+                        Boreas API
+                      </h2>
+                      <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+                        Powers the &ldquo;Remove bg&rdquo; button on image
+                        nodes. Deploy your own Boreas instance or use a hosted
+                        one.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-4 border-t border-black/[0.06] px-5 py-5 sm:px-6">
+                    <div>
+                      <label
+                        htmlFor="avnac-boreas-url"
+                        className="mb-2 block text-sm font-medium text-[var(--text)]"
+                      >
+                        API base URL
+                      </label>
+                      <input
+                        id="avnac-boreas-url"
+                        type="url"
+                        name="avnac-boreas-url"
+                        value={boreasUrl}
+                        onChange={(e) => {
+                          setBoreasUrl(e.target.value);
+                          setBoreasNotice(null);
+                          setBoreasError(null);
+                        }}
+                        placeholder="https://your-boreas-instance.example.com"
+                        autoComplete="off"
+                        spellCheck={false}
+                        className="h-12 w-full rounded-2xl border border-black/[0.1] bg-white px-4 text-[15px] text-[var(--text)] outline-none transition focus:border-black/[0.2] focus:ring-2 focus:ring-black/[0.08]"
+                        disabled={boreasLoading || boresSaving}
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="avnac-boreas-token"
+                        className="mb-2 block text-sm font-medium text-[var(--text)]"
+                      >
+                        API token{" "}
+                        <span className="font-normal text-[var(--text-muted)]">
+                          (optional)
+                        </span>
+                      </label>
+                      <input
+                        id="avnac-boreas-token"
+                        type="password"
+                        name="avnac-boreas-token"
+                        value={boreasToken}
+                        onChange={(e) => {
+                          setBoreasToken(e.target.value);
+                          setBoreasNotice(null);
+                          setBoreasError(null);
+                        }}
+                        placeholder="Sent as X-API-Key if provided"
+                        autoComplete="off"
+                        spellCheck={false}
+                        className="h-12 w-full rounded-2xl border border-black/[0.1] bg-white px-4 text-[15px] text-[var(--text)] outline-none transition focus:border-black/[0.2] focus:ring-2 focus:ring-black/[0.08]"
+                        disabled={boreasLoading || boresSaving}
+                      />
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full border-0 bg-[var(--text)] px-6 py-2.5 text-sm font-medium text-white transition hover:bg-[#262626] disabled:cursor-not-allowed disabled:opacity-60"
+                        onClick={saveBoreas}
+                        disabled={boreasLoading || boresSaving}
+                      >
+                        {boresSaving ? "Saving…" : "Save"}
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full border border-black/[0.12] bg-white px-6 py-2.5 text-sm font-medium text-[var(--text)] transition hover:border-black/[0.2] hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+                        onClick={() => {
+                          setBoreasUrl("");
+                          setBoreasToken("");
+                          setBoreasNotice(null);
+                          setBoreasError(null);
+                        }}
+                        disabled={boreasLoading || boresSaving}
+                      >
+                        Clear
+                      </button>
+                      {boreasLoading ? (
+                        <span className="text-sm text-[var(--text-muted)]">
+                          Loading saved settings…
+                        </span>
+                      ) : null}
+                    </div>
+                    {boreasNotice ? (
+                      <p className="text-sm text-emerald-700">{boreasNotice}</p>
+                    ) : null}
+                    {boreasError ? (
+                      <p className="text-sm text-red-600">{boreasError}</p>
+                    ) : null}
+                  </div>
+                </div>
 
                 {/* Scene snap intensity */}
                 <div className="overflow-hidden rounded-[28px] border border-black/[0.08] bg-white/75 shadow-[0_20px_60px_rgba(0,0,0,0.06)] backdrop-blur-md">
