@@ -70,15 +70,16 @@ func NewRembgService() *RembgService {
 	return &RembgService{}
 }
 
-
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
 
+const defaultBoreasURL = "https://boreas.kageapi.cloud"
+
 func (s *RembgService) boreasURL() (string, error) {
 	u := strings.TrimRight(strings.TrimSpace(os.Getenv("BOREAS_URL")), "/")
 	if u == "" {
-		return "", fmt.Errorf("BOREAS_URL environment variable is not set")
+		return defaultBoreasURL, nil
 	}
 	return u, nil
 }
