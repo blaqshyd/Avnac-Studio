@@ -77,11 +77,11 @@ func NewRembgService() *RembgService {
 // ---------------------------------------------------------------------------
 
 func (s *RembgService) boreasURL() (string, error) {
-	u := os.Getenv("BOREAS_URL")
+	u := strings.TrimRight(strings.TrimSpace(os.Getenv("BOREAS_URL")), "/")
 	if u == "" {
 		return "", fmt.Errorf("BOREAS_URL environment variable is not set")
 	}
-	return strings.TrimRight(u, "/"), nil
+	return u, nil
 }
 
 // buildRequest creates an http.Request with the Cloudflare-friendly headers
