@@ -26,7 +26,7 @@ export default function ImageRembgOverlay({ style }: ImageRembgOverlayProps) {
 
       {/* Shine sweep */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 -top-[30%] rotate-12 h-[150%] w-[150%]"
         style={{
           backgroundImage:
             "linear-gradient(to right, transparent 0%, rgba(255,255,255,0.45) 50%, transparent 100%)",
