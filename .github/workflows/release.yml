@@ -61,7 +61,7 @@ jobs:
 
       - name: Build
         env:
-          BOREAS_URL: ${{ secrets.REMBG_URL }}
+          BOREAS_URL: ${{ vars.REMBG_URL }}
         run: wails build -clean -tags webkit2gtk_4_1 -o avnac-studio-linux-amd64
 
       - name: Rename Linux binary
@@ -105,7 +105,7 @@ jobs:
 
       - name: Build macOS ARM64
         env:
-          BOREAS_URL: ${{ secrets.REMBG_URL }}
+          BOREAS_URL: ${{ vars.REMBG_URL }}
         run: wails build -clean -platform darwin/arm64 -o avnac-studio-macos-arm64
 
       - name: Package ARM64 DMG
@@ -125,7 +125,7 @@ jobs:
 
       - name: Build macOS AMD64
         env:
-          BOREAS_URL: ${{ secrets.REMBG_URL }}
+          BOREAS_URL: ${{ vars.REMBG_URL }}
         run: wails build -clean -platform darwin/amd64 -o avnac-studio-macos-amd64
 
       - name: Package AMD64 DMG
@@ -196,7 +196,7 @@ jobs:
 
       - name: Build
         env:
-          BOREAS_URL: ${{ secrets.REMBG_URL }}
+          BOREAS_URL: ${{ vars.REMBG_URL }}
         run: wails build -clean -nsis -o avnac-studio-windows-amd64
 
       - name: Rename Windows outputs
