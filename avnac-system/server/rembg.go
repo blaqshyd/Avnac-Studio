@@ -63,7 +63,6 @@ type RembgErrorEvent struct {
 // Configuration is read from environment variables:
 //
 //	BOREAS_URL    Base URL of the Boreas API  (required)
-//	BOREAS_TOKEN  Optional bearer token sent as X-API-Key
 type RembgService struct{}
 
 // NewRembgService returns a ready-to-use RembgService.

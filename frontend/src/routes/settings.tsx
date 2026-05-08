@@ -200,7 +200,6 @@ export const Route = createFileRoute("/settings")({
     const [tamboError, setTamboError] = useState<string | null>(null);
     const [tamboNotice, setTamboNotice] = useState<string | null>(null);
 
-    // --- Boreas (remove-bg) — configured via BOREAS_URL / BOREAS_TOKEN env vars ---
     const [snapIntensity, setSnapIntensityState] = useState(() =>
       getSceneSnapIntensity(),
     );
