@@ -4,6 +4,7 @@
  * props needed. Pointer interactions are handled by useSceneEditorInteractions.
  */
 import CanvasSelectionToolbar from "@/components/editor/canvas/canvas-selection-toolbar";
+import ImageRembgOverlay from "@/components/editor/canvas/image-rembg-overlay";
 import SceneWorkspaceStage from "@/components/scene-workspace/stage";
 import { AVNAC_VECTOR_BOARD_DRAG_MIME } from "@/lib/avnac-vector-board-document";
 import { findTopHitNodeId } from "@/lib/saraswati";
@@ -22,6 +23,7 @@ import {
   toClampedScenePoint,
 } from "./scene-editor-viewport-utils";
 import { useSceneEditorStore } from "./store";
+import { useRembgProcessingStore } from "./store/rembg-processing-store";
 import SceneCanvasContextMenu from "./tools/scene-canvas-context-menu";
 import SceneShortcutsModal from "./tools/scene-shortcuts-modal";
 import { useSceneEditorContextMenu } from "./use-scene-editor-context-menu";
@@ -66,6 +68,9 @@ export default function SceneEditorCanvas({
   const setRenderStats = useSceneEditorStore((s) => s.setRenderStats);
   const dropActions = useSceneEditorDropActions();
   const actions = useSceneSelectionActions();
+  const rembgProcessingNodes = useRembgProcessingStore(
+    (s) => s.processingNodes,
+  );
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
@@ -587,6 +592,20 @@ export default function SceneEditorCanvas({
             onCancel={() => setInlineTextEdit(null)}
           />
         ) : null}
+
+        {/* Background-removal processing overlay */}
+        {actions.selectionBounds &&
+          selectedIds.length === 1 &&
+          rembgProcessingNodes[selectedIds[0]!] ? (
+            <ImageRembgOverlay
+              style={{
+                left: actions.selectionBounds.x * scale,
+                top: actions.selectionBounds.y * scale,
+                width: actions.selectionBounds.width * scale,
+                height: actions.selectionBounds.height * scale,
+              }}
+            />
+          ) : null}
 
         {actions.selectionBounds && toolbarStyle && (
           <CanvasSelectionToolbar

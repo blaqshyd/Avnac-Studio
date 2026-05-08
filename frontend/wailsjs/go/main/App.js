@@ -9,3 +9,7 @@ export function GetVersion() {
 export function MediaProxyMiddleware() {
   return window['go']['main']['App']['MediaProxyMiddleware']();
 }
+
+export function StartRemoveBackground(arg1, arg2) {
+  return window['go']['main']['App']['StartRemoveBackground'](arg1, arg2);
+}
