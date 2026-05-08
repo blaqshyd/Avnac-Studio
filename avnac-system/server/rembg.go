@@ -26,9 +26,8 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"os"
 	"strings"
-
-	avnacsecrets "Avnac/avnac-system/secrets"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -61,13 +60,15 @@ type RembgErrorEvent struct {
 
 // RembgService is an internal helper for background-removal jobs.
 // It is NOT directly bound to Wails — use App.StartRemoveBackground instead.
-type RembgService struct {
-	secrets *avnacsecrets.SecretsManager
-}
+// Configuration is read from environment variables:
+//
+//	BOREAS_URL    Base URL of the Boreas API  (required)
+//	BOREAS_TOKEN  Optional bearer token sent as X-API-Key
+type RembgService struct{}
 
 // NewRembgService returns a ready-to-use RembgService.
-func NewRembgService(secrets *avnacsecrets.SecretsManager) *RembgService {
-	return &RembgService{secrets: secrets}
+func NewRembgService() *RembgService {
+	return &RembgService{}
 }
 
 
@@ -76,9 +77,9 @@ func NewRembgService(secrets *avnacsecrets.SecretsManager) *RembgService {
 // ---------------------------------------------------------------------------
 
 func (s *RembgService) boreasURL() (string, error) {
-	u, _ := s.secrets.GetKey("boreas-url")
+	u := os.Getenv("BOREAS_URL")
 	if u == "" {
-		return "", fmt.Errorf("Boreas API URL not configured — add a 'boreas-url' secret in Settings to enable background removal")
+		return "", fmt.Errorf("BOREAS_URL environment variable is not set")
 	}
 	return strings.TrimRight(u, "/"), nil
 }
@@ -95,7 +96,7 @@ func (s *RembgService) buildRequest(method, url string, body io.Reader) (*http.R
 	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
 	req.Header.Set("Accept", "application/json")
 	// Optional bearer token.
-	if token, _ := s.secrets.GetKey("boreas-token"); token != "" {
+	if token := os.Getenv("BOREAS_TOKEN"); token != "" {
 		req.Header.Set("X-API-Key", token)
 	}
 	return req, nil

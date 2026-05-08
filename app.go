@@ -29,7 +29,7 @@ func NewApp() *App {
 	cfgMgr := avnacconfig.NewConfigManager()
 	secrets := avnacsecrets.NewSecretsManager()
 	unsplash := avnacserver.NewUnsplashService(secrets)
-	rembg := avnacserver.NewRembgService(secrets)
+	rembg := avnacserver.NewRembgService()
 	proxy := avnacserver.NewMediaProxy(cfgMgr.Get())
 	cfgMgr.AddWatcher(proxy.UpdateConfig)
 	return &App{
