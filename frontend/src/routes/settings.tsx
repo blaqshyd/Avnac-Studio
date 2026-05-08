@@ -199,6 +199,7 @@ export const Route = createFileRoute("/settings")({
     const [tamboSaving, setTamboSaving] = useState(false);
     const [tamboError, setTamboError] = useState<string | null>(null);
     const [tamboNotice, setTamboNotice] = useState<string | null>(null);
+
     const [snapIntensity, setSnapIntensityState] = useState(() =>
       getSceneSnapIntensity(),
     );

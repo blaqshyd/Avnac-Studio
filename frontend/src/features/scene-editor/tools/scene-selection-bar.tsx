@@ -14,8 +14,10 @@
  */
 import { useEffect, useRef, useState } from "react";
 import {
+  AiMagicIcon,
   ArrowDown01Icon,
   BendToolIcon,
+  Cancel01Icon,
   CropIcon,
   Delete02Icon,
   StraightEdgeIcon,
@@ -54,6 +56,7 @@ import type {
   SaraswatiPolygonNode,
 } from "@/lib/saraswati";
 import { useSceneEditorStore } from "../store";
+import { useRemoveBg } from "@/lib/use-remove-bg";
 
 // ---------------------------------------------------------------------------
 // Helpers: SaraswatiColor <-> BgValue boundary casts (same runtime shape)
@@ -113,17 +116,12 @@ export default function SceneSelectionBar() {
   const setNodeOpacity = useSceneEditorStore((s) => s.setNodeOpacity);
   const setNodeShadow = useSceneEditorStore((s) => s.setNodeShadow);
   const setNodeBlur = useSceneEditorStore((s) => s.setNodeBlur);
-  const setImageCrop = useSceneEditorStore((s) => s.setImageCrop);
-  const setImageBorderRadius = useSceneEditorStore(
-    (s) => s.setImageBorderRadius,
-  );
   const setPolygonSides = useSceneEditorStore((s) => s.setPolygonSides);
   const barRef = useRef<HTMLDivElement>(null);
   const linePathRef = useRef<HTMLDivElement>(null);
   const linePathPanelRef = useRef<HTMLDivElement>(null);
   const lineWeightRef = useRef<HTMLDivElement>(null);
   const lineWeightPanelRef = useRef<HTMLDivElement>(null);
-  const [cropModalNodeId, setCropModalNodeId] = useState<string | null>(null);
   const [linePathPanelOpen, setLinePathPanelOpen] = useState(false);
   const [lineWeightPanelOpen, setLineWeightPanelOpen] = useState(false);
   const styleBatchDepthRef = useRef(0);
@@ -901,82 +899,7 @@ export default function SceneSelectionBar() {
     // IMAGE
     if (node.type === "image") {
       const imageNode = node as SaraswatiImageNode;
-      const opacityPct = Math.round((imageNode.opacity ?? 1) * 100);
-      const radiusValue = imageNode.borderRadius ?? 0;
-      const radiusMax = Math.min(imageNode.width, imageNode.height) / 2;
-      return (
-        <>
-          <BarShell barRef={barRef} focusMode={focusMode}>
-            <FloatingToolbarShell role="toolbar" aria-label="Image options">
-              <div className="flex items-center py-1.5 pl-2.5 pr-1.5">
-                <button
-                  type="button"
-                  onClick={() => setCropModalNodeId(nodeId)}
-                  className={floatingToolbarIconButton(false)}
-                  title="Crop image"
-                  aria-label="Crop image"
-                >
-                  <HugeiconsIcon icon={CropIcon} size={16} strokeWidth={1.75} />
-                </button>
-                <FloatingToolbarDivider />
-                <CornerRadiusToolbarControl
-                  value={radiusValue}
-                  max={radiusMax}
-                  onChange={(r) => setImageBorderRadius(nodeId, r)}
-                  onInteractionStart={beginStyleBatch}
-                  onInteractionEnd={endStyleBatch}
-                />
-                <FloatingToolbarDivider />
-                <BlurToolbarControl
-                  blurPct={imageNode.blur ?? 0}
-                  onChange={(b) => setNodeBlur(nodeId, b)}
-                  onInteractionStart={beginStyleBatch}
-                  onInteractionEnd={endStyleBatch}
-                />
-                <FloatingToolbarDivider />
-                <TransparencyToolbarPopover
-                  opacityPct={opacityPct}
-                  onChange={(pct) => setNodeOpacity(nodeId, pct / 100)}
-                  onInteractionStart={beginStyleBatch}
-                  onInteractionEnd={endStyleBatch}
-                />
-                <FloatingToolbarDivider />
-                <ShadowToolbarPopover
-                  value={toFabricShadow(
-                    imageNode.shadow ?? (DEFAULT_SHADOW_UI as SaraswatiShadow),
-                  )}
-                  shadowActive={Boolean(imageNode.shadow)}
-                  onChange={(s) => setNodeShadow(nodeId, fromFabricShadow(s))}
-                  onInteractionStart={beginStyleBatch}
-                  onInteractionEnd={endStyleBatch}
-                />
-                <FloatingToolbarDivider />
-                <DeleteBtn onClick={handleDelete} />
-              </div>
-            </FloatingToolbarShell>
-          </BarShell>
-          <ImageCropModal
-            open={cropModalNodeId === nodeId}
-            imageSrc={imageNode.src}
-            initialCrop={{
-              x: imageNode.cropX,
-              y: imageNode.cropY,
-              w: imageNode.cropWidth ?? imageNode.width,
-              h: imageNode.cropHeight ?? imageNode.height,
-            }}
-            onCancel={() => setCropModalNodeId(null)}
-            onApply={(rect) => {
-              setImageCrop(nodeId, {
-                cropX: rect.cropX,
-                cropY: rect.cropY,
-                cropWidth: rect.width,
-                cropHeight: rect.height,
-              });
-              setCropModalNodeId(null);
-            }}
-          />
-        </>
-      );
+      return <ImageToolbar nodeId={nodeId} imageNode={imageNode} focusMode={focusMode} barRef={barRef} onDelete={handleDelete} />;
     }
 
     // UNKNOWN
@@ -1106,5 +1029,185 @@ function DeleteBtn({ onClick }: { onClick: () => void }) {
     >
       <HugeiconsIcon icon={Delete02Icon} size={16} strokeWidth={1.75} />
     </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ImageToolbar — extracted so it can own the useRemoveBg hook
+// ---------------------------------------------------------------------------
+function ImageToolbar({
+  nodeId,
+  imageNode,
+  focusMode,
+  barRef,
+  onDelete,
+}: {
+  nodeId: string;
+  imageNode: SaraswatiImageNode;
+  focusMode: boolean;
+  barRef: React.RefObject<HTMLDivElement | null>;
+  onDelete: () => void;
+}) {
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+
+  const setImageCrop = useSceneEditorStore((s) => s.setImageCrop);
+  const setImageBorderRadius = useSceneEditorStore(
+    (s) => s.setImageBorderRadius,
+  );
+  const setNodeBlur = useSceneEditorStore((s) => s.setNodeBlur);
+  const setNodeOpacity = useSceneEditorStore((s) => s.setNodeOpacity);
+  const setNodeShadow = useSceneEditorStore((s) => s.setNodeShadow);
+  const beginHistoryBatch = useSceneEditorStore((s) => s.beginHistoryBatch);
+  const endHistoryBatch = useSceneEditorStore((s) => s.endHistoryBatch);
+  const styleBatchDepthRef = useRef(0);
+
+  const beginStyleBatch = () => {
+    if (styleBatchDepthRef.current === 0) beginHistoryBatch();
+    styleBatchDepthRef.current += 1;
+  };
+  const endStyleBatch = () => {
+    if (styleBatchDepthRef.current <= 0) return;
+    styleBatchDepthRef.current -= 1;
+    if (styleBatchDepthRef.current === 0) endHistoryBatch();
+  };
+
+  const { isProcessing, error, clearError, startRemoveBg } = useRemoveBg(
+    nodeId,
+    imageNode,
+  );
+
+  const opacityPct = Math.round((imageNode.opacity ?? 1) * 100);
+  const radiusValue = imageNode.borderRadius ?? 0;
+  const radiusMax = Math.min(imageNode.width, imageNode.height) / 2;
+
+  return (
+    <>
+      <BarShell barRef={barRef} focusMode={focusMode}>
+        <FloatingToolbarShell role="toolbar" aria-label="Image options">
+          <div className="flex items-center py-1.5 pl-2.5 pr-1.5">
+            {/* Remove background */}
+            <button
+              type="button"
+              onClick={() => void startRemoveBg()}
+              disabled={isProcessing}
+              className={[
+                floatingToolbarIconButton(isProcessing, { wide: true }),
+                "gap-1 px-2",
+                isProcessing ? "opacity-70 cursor-wait" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              title="Remove background"
+              aria-label="Remove background"
+              aria-busy={isProcessing}
+            >
+              <HugeiconsIcon
+                icon={AiMagicIcon}
+                size={15}
+                strokeWidth={1.75}
+                className={isProcessing ? "animate-pulse" : ""}
+              />
+              <span className="text-[13px] font-medium">Remove bg</span>
+            </button>
+
+            {/* Inline error badge */}
+            {error ? (
+              <>
+                <FloatingToolbarDivider />
+                <div className="flex items-center gap-1 pl-1 pr-0.5">
+                  <span
+                    className="max-w-56 truncate text-[11px] font-medium text-red-500"
+                    title={error}
+                  >
+                    {error}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={clearError}
+                    aria-label="Dismiss error"
+                    className="flex h-5 w-5 items-center justify-center rounded text-neutral-400 hover:text-neutral-700"
+                  >
+                    <HugeiconsIcon
+                      icon={Cancel01Icon}
+                      size={12}
+                      strokeWidth={2}
+                    />
+                  </button>
+                </div>
+              </>
+            ) : null}
+
+            <FloatingToolbarDivider />
+
+            {/* Crop */}
+            <button
+              type="button"
+              onClick={() => setCropModalOpen(true)}
+              className={floatingToolbarIconButton(false)}
+              title="Crop image"
+              aria-label="Crop image"
+            >
+              <HugeiconsIcon icon={CropIcon} size={16} strokeWidth={1.75} />
+            </button>
+
+            <FloatingToolbarDivider />
+            <CornerRadiusToolbarControl
+              value={radiusValue}
+              max={radiusMax}
+              onChange={(r) => setImageBorderRadius(nodeId, r)}
+              onInteractionStart={beginStyleBatch}
+              onInteractionEnd={endStyleBatch}
+            />
+            <FloatingToolbarDivider />
+            <BlurToolbarControl
+              blurPct={imageNode.blur ?? 0}
+              onChange={(b) => setNodeBlur(nodeId, b)}
+              onInteractionStart={beginStyleBatch}
+              onInteractionEnd={endStyleBatch}
+            />
+            <FloatingToolbarDivider />
+            <TransparencyToolbarPopover
+              opacityPct={opacityPct}
+              onChange={(pct) => setNodeOpacity(nodeId, pct / 100)}
+              onInteractionStart={beginStyleBatch}
+              onInteractionEnd={endStyleBatch}
+            />
+            <FloatingToolbarDivider />
+            <ShadowToolbarPopover
+              value={toFabricShadow(
+                imageNode.shadow ?? (DEFAULT_SHADOW_UI as SaraswatiShadow),
+              )}
+              shadowActive={Boolean(imageNode.shadow)}
+              onChange={(s) => setNodeShadow(nodeId, fromFabricShadow(s))}
+              onInteractionStart={beginStyleBatch}
+              onInteractionEnd={endStyleBatch}
+            />
+            <FloatingToolbarDivider />
+            <DeleteBtn onClick={onDelete} />
+          </div>
+        </FloatingToolbarShell>
+      </BarShell>
+
+      <ImageCropModal
+        open={cropModalOpen}
+        imageSrc={imageNode.src}
+        initialCrop={{
+          x: imageNode.cropX,
+          y: imageNode.cropY,
+          w: imageNode.cropWidth ?? imageNode.width,
+          h: imageNode.cropHeight ?? imageNode.height,
+        }}
+        onCancel={() => setCropModalOpen(false)}
+        onApply={(rect) => {
+          setImageCrop(nodeId, {
+            cropX: rect.cropX,
+            cropY: rect.cropY,
+            cropWidth: rect.width,
+            cropHeight: rect.height,
+          });
+          setCropModalOpen(false);
+        }}
+      />
+    </>
   );
 }

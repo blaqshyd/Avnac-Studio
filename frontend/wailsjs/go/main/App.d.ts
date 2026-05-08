@@ -5,3 +5,5 @@ import {assetserver} from '../models';
 export function GetVersion():Promise<string>;
 
 export function MediaProxyMiddleware():Promise<assetserver.Middleware>;
+
+export function StartRemoveBackground(arg1:string,arg2:string):Promise<void>;
