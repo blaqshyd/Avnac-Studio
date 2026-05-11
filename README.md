@@ -346,4 +346,4 @@ Source: [github.com/akinloluwami/avnac](https://github.com/akinloluwami/avnac)
 
 ## License
 
-[MIT](./LICENSE) © 2026 striker561, d3uceY
+[GPL](./LICENSE) © 2026 striker561, d3uceY
